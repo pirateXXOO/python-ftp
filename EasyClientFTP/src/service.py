@@ -11,7 +11,9 @@ def login(conn):
         username = input('Please input your username(click "q" to quit): ')
         pwd = input('Please inpur your password: ')
         login_info = {'username': username, 'pwd': pwd}
-        if str(conn.recv(1024), encoding='utf-8') == '4002':
+        conn.sendall(bytes(json.dumps(login_info), 'utf-8'))
+        received_code = str(conn.recv(1024), encoding='utf-8')
+        if received_code == '4002':
             print('Authorize successfully')
             break
         else:
@@ -26,7 +28,7 @@ def cmd(conn, inp):
     else:
         conn.sendall(bytes('ack', 'utf-8'))
         print(str(basic_info_bytes, 'utf-8'))
-        result_length = int(str(basic_info_bytes, 'utf-8').split('|'[1]))
+        result_length = int(str(basic_info_bytes, 'utf-8').split('|')[1])
         has_received = 0
         content_bytes = bytes()
         while has_received < result_length:
@@ -39,7 +41,7 @@ def cmd(conn, inp):
 
 def post(conn, inp):
     method, file_paths = inp.split('|', 1)
-    local_path, target_path = re.split('\s*', file_paths, 1)
+    local_path, target_path = re.split('\s', file_paths, 1)
     file_byte_size = os.stat(local_path).st_size
     file_name = os.path.basename(local_path)
     file_md5 = commons.fetch_file_md5(local_path)
@@ -81,8 +83,8 @@ def get(conn, imp):
 
 def help_info():
     print('''
-    cmd | command
-    post | file path
+    cmd|command
+    post|local_path remote_path
     get | file path to download 
     exit | exit
     ''')
@@ -96,7 +98,7 @@ def execute(conn):
     }
     help_info()
     while True:
-        inp = input('Please input')
+        inp = input('Please input:  ')
         if inp == 'help':
             help_info()
             continue

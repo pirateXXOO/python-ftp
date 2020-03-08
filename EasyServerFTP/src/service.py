@@ -85,7 +85,7 @@ class MultiServerHandler(socketserver.BaseRequestHandler):
             if not client_bytes:
                 break
 
-            client_str = str(client_bytes, encoding='utg-8')
+            client_str = str(client_bytes, encoding='utf-8')
             if obj.has_login:
                 o = client_str.split('|', 1)
                 if len(o) > 0:
@@ -101,7 +101,7 @@ class MultiServerHandler(socketserver.BaseRequestHandler):
 
 class MultiServer(object):
     def __init__(self):
-        server = socketserver.ThreadingTCPServer((settings.BIND_HOST, int(settings.BIND_PORT)), MultiServerHandler)
+        server = socketserver.ThreadingTCPServer((settings.BIND_HOST, settings.BIND_PORT), MultiServerHandler)
         server.serve_forever()
 
 
@@ -119,7 +119,7 @@ class Action(object):
             login_str = str(self.conn.recv(1024), encoding='utf-8')
             login_dict = json.loads(login_str)
             if login_dict['username'] == 'wupeiqi' and login_dict['pwd'] == '123':
-                self.conn.seendall(bytes('4002', 'utf-8'))
+                self.conn.sendall(bytes('4002', 'utf-8'))
                 self.has_login = True
                 self.username = 'wupeiqi'
                 self.initialize()
@@ -134,7 +134,7 @@ class Action(object):
     def cmd(self, origin):
 
         func, command = origin.split('|', 1)
-        command_list = re.split('\s*', 1)
+        command_list = re.split('\s*',command, 1)
 
         if command_list[0] == 'ls':
             if len(command_list) == 1:
@@ -164,7 +164,7 @@ class Action(object):
 
         try:
             result_bytes = subprocess.check_output(command, shell=True)
-            result_bytes = bytes(str(result_bytes, encoding='gbk'), encoding='utf-8')
+            result_bytes = bytes(str(result_bytes, encoding='utf-8'), encoding='utf-8')
         except Exception as e:
             result_bytes = bytes('error cmd', encoding='utf-8')
 
@@ -175,25 +175,25 @@ class Action(object):
 
     def post(self, origin):
         func, file_bytes_size, file_name, fine_md5, target_path = origin.split('|', 4)
-        target__abs_md5_path = os.path.join(self.home, target_path)
+        target_abs_md5_path = os.path.join(self.home, target_path)
         has_receive = 0
         file_bytes_size = int(file_bytes_size)
 
-        if os.path.exists(target__abs_md5_path):
+        if os.path.exists(target_abs_md5_path):
             self.conn.sendall(bytes('2003', 'utf-8'))
             is_continue = str(self.conn.recv(1024), 'utf-8')
             if is_continue == "2004":
-                has_file_size = os.stat(target__abs_md5_path).st_size
+                has_file_size = os.stat(target_abs_md5_path).st_size
                 self.conn.sendall(bytes(str(has_file_size), 'utf-8'))
                 has_receive += has_file_size
-                f = open(target__abs_md5_path, 'ab')
+                f = open(target_abs_md5_path, 'ab')
 
             else:
-                f = open(target__abs_md5_path, 'wb')
+                f = open(target_abs_md5_path, 'wb')
 
         else:
             self.conn.sendall(bytes('2002', 'utf-8'))
-            f =open(target__abs_md5_path, 'wb')
+            f =open(target_abs_md5_path, 'wb')
 
         while file_bytes_size > has_receive:
             data = self.conn.recv(1024)
